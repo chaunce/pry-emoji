@@ -9,7 +9,7 @@ Gem::Specification.new do |gem|
   gem.email         = 'chaunce.slc@gmail.com'
   gem.license       = 'MIT'
   gem.homepage      = 'https://github.com/chaunce/pry-emoji'
-  gem.summary       = 'Clutter up your shell.'
+  gem.summary       = 'Clutter up your shell with some emoji.'
   gem.description   = "Clutter up your shell with some emoji.  Why not?  You already have all that pry crap mucking everything up."
 
   gem.files         = `git ls-files`.split("\n")
