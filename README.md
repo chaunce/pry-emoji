@@ -7,6 +7,12 @@ Clutter up your shell with some emoji.  Why not?  You already have all that pry 
 Usage
 --------
 
+add `pry-emoji` to your gemfile
+
+    group :development do
+      gem 'pry-emoji'
+    end
+
 set your `Pry.config.prompt` customization setting to use the `pry-emoji` prompt in your `.pryrc` file, or wherever you do your customization
 
     Pry.config.prompt = PryEmoji::Prompt.new
