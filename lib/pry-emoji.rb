@@ -4,20 +4,25 @@ require 'emoji'
 module PryEmoji
   module PromptConfig
     class Base
-      attr_accessor :config
-      attr_accessor :emoji
-      attr_accessor :emoji_array
-      attr_accessor :title
+      attr_accessor :config, :emoji, :title
 
       def initialize(config)
         @config = config
-        @emoji_array = PryEmoji::Config.emoji_array
         @title = 'irb'
         randomize_emoji
       end
-      
+
+      def emoji_array
+        config.emoji_array
+      end
+
       def randomize_emoji
-        @emoji = emoji_array[Random.rand(emoji_array.length)]
+        @emoji = random_emoji
+      end
+      
+      def random_emoji(advantage = [])
+        advantage_emoji_array = emoji_array + Array(advantage)
+        advantage_emoji_array.shuffle[Random.rand(advantage_emoji_array.length)]
       end
 
       def line_number(pry)
@@ -33,22 +38,41 @@ module PryEmoji
         "#{title} #{print_emoji} > "
       end
 
-      def emoji_string(use_last = false)
-        print_emoji(use_last ? current_emoji : new_emoji)
-      end
-
-      def announce_winner(message)
-        puts "\033[1L\033[34m\033[1m  #{::Emoji.find_by_alias('boom').raw}  WINNER #{message} WINNER  #{::Emoji.find_by_alias('boom').raw}\033[0m\033[39m"
-      end
-
       def print_emoji
-        "#{emoji.raw} "
+        emoji.raw.strip
       end
     end
   
-    class Slots < Base
-      # include PryEmoji::PromptConfig::Game
-      attr_accessor :advantage
+    class Game < Base
+      attr_accessor :advantage, :winner_emoji
+
+      def initialize(config)
+        @winner_emoji = :boom
+        super(config)
+      end
+
+      def randomize_emoji
+        announce_winner if winner?
+      end
+
+      def announce_winner
+        puts "\033[1L\033[34m\033[1m  #{print_winner_emoji}  WINNER #{print_winner_message} WINNER  #{print_winner_emoji}\033[0m\033[39m"
+      end
+
+      def winner?
+        false
+      end
+
+      def print_winner_message
+        print_emoji
+      end
+
+      def print_winner_emoji
+        ::Emoji.find_by_alias(winner_emoji.to_s).raw.strip
+      end
+    end
+
+    class Slots < Game
       attr_accessor :slot_size
       
       def initialize(config)
@@ -56,24 +80,23 @@ module PryEmoji
         @advantage = 4
         super(config)
       end
-      
+
       def randomize_emoji
-        @emoji = slot_size.times.inject([]) { |a| a << one_random_emoji_with_advantage(a*advantage) }
-        # announce_winner(print_emoji(emoji).strip) if emoji_array.length > 1 && emoji.uniq.length == 1
-      end
-      
-      def one_random_emoji_with_advantage_array(advantage_array)
-        (emoji_array + emoji.*(advantage).split(//))[Random.rand(random_emoji_array.length + advantage)]
+        @emoji = slot_size.times.inject([]) { |a| a << random_emoji(a*advantage) }
+        super
       end
 
-      def print_emoji(emoji)
-        "|#{emoji.raw.join(' |')} |"
+      def print_emoji
+        "|#{emoji.collect{ |e| e.raw.strip }.join('|')}|"
+      end
+
+      def winner?
+        emoji.length > 1 && emoji.uniq.length == 1
       end
     end
   
-    class Match < Base
-      # include PryEmoji::PromptConfig::Game
-      attr_accessor :advantage
+    class Match < Game
+      attr_accessor :last_emoji
 
       def initialize(config)
         @advantage = 10
@@ -81,41 +104,44 @@ module PryEmoji
       end
 
       def randomize_emoji
-        @emoji = (emoji_array + emoji.*(advantage).split(//))[Random.rand(random_emoji_array.length + advantage)]
+        @last_emoji = emoji
+        @emoji = random_emoji
+        super
       end
-    end
 
-    module Game
-      attr_accessor :advantage
+      def winner?
+        last_emoji == emoji
+      end
     end
   end
 
   class Prompt < Array
     cattr_accessor(:types) { PryEmoji::PromptConfig.constants.select{ |constant| PryEmoji::PromptConfig.const_get(constant).is_a? Class } }
 
-    def initialize(type = :base)
-      super(PryEmoji::Config.new(type).prompt)
+    def initialize(type = :base, configuration = nil)
+      super(PryEmoji::Config.new(type, configuration).prompt)
     end
 
     def self.method_missing(method_id, *arguments, &block)
-      self.new(normalize_type(method_id))
+      self.new(normalize_type(method_id), *arguments)
     end
 
     private
 
     def self.normalize_type(type)
-      play_type = type.to_s.titleize.to_sym
-      puts "I don't know how to play #{type}" if (types & [play_type]).none?
-      (types & [play_type]).first || :base
+      play_type = (types & Array(type.to_s.titleize.to_sym)).first
+      puts "I don't know how to play #{type}" unless play_type
+      play_type || :base
     end
   end
 
   class Config
-    cattr_accessor(:emoji_array) { ['octopus', 'blowfish', 'space_invader', 'skull', 'smiling_imp', 'imp', 'smile_cat', 'joy_cat', 'heart_eyes_cat', 'pouting_cat', 'scream_cat', 'cherry_blossom', 'blossom', 'mushroom', 'bird', 'penguin', 'hatching_chick', 'hatched_chick', 'cat', 'dragon', 'snake', 'tomato', 'eggplant', 'grapes', 'watermelon', 'tangerine', 'lemon', 'apple', 'green_apple', 'pear', 'peach', 'cherries', 'strawberry', 'pizza', 'ramen', 'oden', 'dango', 'fish_cake', 'beer', 'tea', 'cake', 'musical_note', 'pill', 'beginner', 'diamond_shape_with_a_dot_inside', 'recycle', 'bomb', 'poop', 'sushi'].collect{ |a| ::Emoji.find_by_alias(a) } }
-    attr_accessor :prompt_config
-    attr_accessor :prompt
+    attr_accessor :prompt_config, :prompt, :configuration
 
-    def initialize(prompt = :base)
+    def initialize(prompt = :base, configuration = nil)
+      @configuration = Hash(configuration).with_indifferent_access
+      %i[emoji].each { |option| parse_configuration_option(option) }
+
       @prompt_config = PromptConfig.const_get(prompt.to_s.titleize.to_sym).new(self)
       @prompt = [
         proc { |obj, nest_level, pry| prompt_config.prompt(obj, nest_level, pry) },
@@ -124,21 +150,23 @@ module PryEmoji
       # Pry.config.prompt = prompt
     end
 
-    def new_emoji(play = true)
-      case mode
-      when 'slots'
-        emoji = 3.times.inject([]) { |a| a << random_emoji(a*4) }
-        announce_winner(print_emoji(emoji).strip) if emoji_array.length > 1 && emoji.uniq.length == 1
-      when 'match', 'standard'
-        emoji = random_emoji
-        announce_winner(([print_emoji(emoji)]*3).join(' ')) if mode == 'match' && emoji_array.length > 1 && emoji == current_emoji
-      end
-      self.current_emoji = emoji
+    def emoji
+      @emoji ||= %i[octopus blowfish space_invader skull smiling_imp imp smile_cat joy_cat heart_eyes_cat pouting_cat scream_cat cherry_blossom blossom mushroom bird penguin hatching_chick hatched_chick cat dragon snake tomato eggplant grapes watermelon tangerine lemon apple green_apple pear peach cherries strawberry pizza ramen oden dango fish_cake beer tea cake musical_note pill beginner diamond_shape_with_a_dot_inside bomb poop sushi]
     end
 
-    def random_emoji(advantage = [])
-      random_emoji_array = emoji_array + advantage
-      emoji = random_emoji_array[Random.rand(random_emoji_array.length)]
+    def emoji=(emoji)
+      @emoji_array = nil
+      @emoji = Array(emoji)
+    end
+
+    def emoji_array
+      @emoji_array ||= emoji.collect { |e| ::Emoji.find_by_alias(e.to_s) }
+    end
+
+    private
+
+    def parse_configuration_option(option)
+      self.instance_variable_set(:"@#{option}", configuration[option]) if configuration.include?(option)
     end
   end
 end
