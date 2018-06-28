@@ -51,7 +51,7 @@ Idk. Never? Tomorrow? Don't hold your breath. Or do. Whatever floats your boat.
 
 ### How can I add even more emoji to my console? I know Pry already makes everything less readable, but I don't think it goes too far enough.
 
-Great question! I'll work on adding some more options to accomidate your masochistic desires.
+Great question! I'll work on adding some more options to accommodate your masochistic desires.
 
 
 ### Can I use this gem in production?
