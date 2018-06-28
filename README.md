@@ -39,55 +39,47 @@ play a game with `pry-emoji`, because working in the console is boring and a bun
 faq
 ===========
 
-My console announced I was a winner, please explain
---------
+### My console announced I was a winner, please explain
 
 You're not.
 
 
-This gem is fantastic! When can I expect new games to be added?
---------
+### This gem is fantastic! When can I expect new games to be added?
 
 Idk. Never? Tomorrow? Don't hold your breath. Or do. Whatever floats your boat.
 
 
-How can I add even more emoji to my console? I know Pry already makes everything less readable, but I don't think it goes too far enough.
---------
+### How can I add even more emoji to my console? I know Pry already makes everything less readable, but I don't think it goes too far enough.
 
 Great question! I'll work on adding some more options to accomidate your masochistic desires.
 
 
-Can I use this gem in production?
---------
+### Can I use this gem in production?
 
 My production configuration uses only the `racing_car` emoji.
 
 
-This gem isn't fun at all
---------
+### This gem isn't fun at all
+
 You will never be happy if you continue to search for what happiness consists of. You will never live if you are looking for the meaning of life.
 
 
-Everything is broken
---------
+### Everything is broken
 
 I think I fixed that now.
 
 
-Your gem is stupid
---------
+### Your gem is stupid
 
 Alright.
 
 
-Stop making fun of Pry
---------
+### Stop making fun of Pry
 
 As soon as it stops sucking.
 
 
-A different question
---------
+### A different question
 
 No, you.
 
